@@ -1,0 +1,55 @@
+[package]
+name = "screenshot_tool"
+version = "1.0.0"
+edition = "2021"
+authors = ["Deendayal Kumawat codewithcup.developer@gmail.com"]
+license = "MIT OR Apache-2.0"
+description = "A lightweight, high-performance screenshot capture tool written in Rust that provides multiple capture modes through an intuitive command-line interface. Built for speed and cross-platform compatibility, it supports fullscreen, area selection, and window capture with advanced options like delays, custom output directories, and clipboard integration. Optimized for minimal system overhead while delivering production-ready reliability across Linux, macOS, and Windows platforms."
+repository = "https://github.com/ddsha441981/screenshot_tool"
+keywords = ["screenshot", "capture", "cli", "cross-platform"]
+categories = ["command-line-utilities", "multimedia"]
+readme = "README.md"
+
+[[bin]]
+name = "screenshot"
+path = "src/main.rs"
+
+[dependencies]
+screenshots = "0.7"
+image = { version = "0.24", features = ["png", "jpeg", "webp"] }
+chrono = { version = "0.4", features = ["serde"] }
+anyhow = "1.0"
+thiserror = "1.0"
+dirs = "5.0"
+clap = { version = "4.0", features = ["derive"] }
+log = "0.4"
+env_logger = "0.10"
+config = "0.13"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+uuid = { version = "1.0", features = ["v4"] }
+rayon = "1.7"
+
+# Platform-specific dependencies
+[target.'cfg(target_os = "linux")'.dependencies]
+arboard = "3.2"
+
+[target.'cfg(target_os = "macos")'.dependencies]
+arboard = "3.2"
+
+[target.'cfg(target_os = "windows")'.dependencies]
+arboard = "3.2"
+winapi = { version = "0.3", features = ["winuser", "wingdi"] }
+
+[dev-dependencies]
+tempfile = "3.0"
+criterion = "0.5"
+serial_test = "3.0"
+
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
