@@ -99,6 +99,14 @@ jobs:
         with:
           targets: ${{ matrix.target }}
 
+      # 🔥 THIS IS THE KEY FIX - Install Linux dependencies BEFORE building
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt update
+          sudo apt install -y libxcb1-dev libxcb-render0-dev libxcb-shape0-dev \
+            libxcb-shm0-dev libxcb-xfixes0-dev pkg-config
+
       - name: Install Windows dependencies
         if: matrix.target == 'x86_64-pc-windows-gnu'
         run: |
