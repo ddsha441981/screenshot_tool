@@ -11,19 +11,25 @@ env:
 jobs:
   create-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Required for creating releases
+      actions: write   # Required for workflow operations
     outputs:
       upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Screenshot Tool ${{ github.ref }}
+          tag_name: ${{ github.ref_name }}
+          name: Screenshot Tool ${{ github.ref_name }}
           body: |
-            # 🚀 Screenshot Tool ${{ github.ref }}
+            # 🚀 Screenshot Tool ${{ github.ref_name }}
             
             A fast, cross-platform screenshot capture tool built with Rust.
             
@@ -55,14 +61,13 @@ jobs:
             screenshot list          # List available screens
             screenshot --help        # Show all options
             ```
-            
-            ## 🐛 Issues & Support
-            If you encounter any issues, please report them on the [Issues page](https://github.com/deendayal/screenshot_tool/issues).
           draft: false
           prerelease: false
 
   build-and-upload:
     needs: create-release
+    permissions:
+      contents: write  # Required for uploading assets
     strategy:
       matrix:
         include:
@@ -82,32 +87,27 @@ jobs:
             target: aarch64-apple-darwin
             name: macos-aarch64
             archive: tar.gz
-    
+
     runs-on: ${{ matrix.os }}
-    
+
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
-      
+        uses: actions/checkout@v4
+
       - name: Setup Rust
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@stable
         with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
-      
+          targets: ${{ matrix.target }}
+
       - name: Install Windows dependencies
         if: matrix.target == 'x86_64-pc-windows-gnu'
         run: |
           sudo apt update
           sudo apt install -y mingw-w64
-      
+
       - name: Build
-        uses: actions-rs/cargo@v1
-        with:
-          command: build
-          args: --release --target ${{ matrix.target }}
-      
+        run: cargo build --release --target ${{ matrix.target }}
+
       - name: Prepare Linux/macOS release
         if: matrix.archive == 'tar.gz'
         run: |
@@ -115,7 +115,7 @@ jobs:
           cp target/${{ matrix.target }}/release/screenshot release/
           cd release
           tar -czf ../screenshot-${{ github.ref_name }}-${{ matrix.name }}.tar.gz screenshot
-      
+
       - name: Prepare Windows release
         if: matrix.archive == 'zip'
         run: |
@@ -123,25 +123,12 @@ jobs:
           cp target/${{ matrix.target }}/release/screenshot.exe release/
           cd release
           zip ../screenshot-${{ github.ref_name }}-${{ matrix.name }}.zip screenshot.exe
-      
-      - name: Upload Linux/macOS Release Asset
-        if: matrix.archive == 'tar.gz'
-        uses: actions/upload-release-asset@v1
+
+      - name: Upload Release Asset
+        uses: softprops/action-gh-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./screenshot-${{ github.ref_name }}-${{ matrix.name }}.tar.gz
-          asset_name: screenshot-${{ github.ref_name }}-${{ matrix.name }}.tar.gz
-          asset_content_type: application/gzip
-      
-      - name: Upload Windows Release Asset
-        if: matrix.archive == 'zip'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ needs.create-release.outputs.upload_url }}
-          asset_path: ./screenshot-${{ github.ref_name }}-${{ matrix.name }}.zip
-          asset_name: screenshot-${{ github.ref_name }}-${{ matrix.name }}.zip
-          asset_content_type: application/zip
+          tag_name: ${{ github.ref_name }}
+          files: |
+            screenshot-${{ github.ref_name }}-${{ matrix.name }}.*
